@@ -9,19 +9,13 @@ from recognizer import Recognizer
 
 class TFRecognizer(Recognizer):
 
-    def __init__(self, graph_path, legacy=False):
-        self._sess = tf.Session()
-        self._init_graph(graph_path)
-        self._sess.run([tf.local_variables_initializer(), tf.tables_initializer()])
-
-        if legacy:
-            self._features = self._sess.graph.get_tensor_by_name('x:0')
-            self._prediction = self._sess.graph.get_tensor_by_name('softmax:0')
-        else:
-            self._features = self._sess.graph.get_tensor_by_name('features:0')
-            self._prediction = self._sess.graph.get_tensor_by_name('prediction:0')
-
+    def __init__(self, graph_path, input_shape=[36,224], output_names=['prediction:0'], legacy=False):
+        self._input_shape = input_shape
         self._legacy = legacy
+        self._output_names = output_names
+        self._graph = self._init_graph(graph_path)
+        self._sess = tf.Session(graph=self._graph)
+        #self._sess.run([tf.local_variables_initializer(), tf.tables_initializer()])
 
         self._letters_lower = list('abcdefghijklmnopqrstuvwxyz')
         self._letters_upper = list('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
@@ -42,6 +36,7 @@ class TFRecognizer(Recognizer):
         Returns:
             should return recognized characters
         """
+        a = self.recognize_batch([image])
         return self.recognize_batch([image])[0]
 
 
@@ -60,14 +55,10 @@ class TFRecognizer(Recognizer):
             else:
                 resized_images = []
                 for image in images:
-                    width = image.shape[1]
-                    height = image.shape[0]
-                    resized_image = np.resize(image, (height, width, 1))
+                    resized_image = np.resize(image, (self._input_shape[0], self._input_shape[1], 1))
                     resized_images.append(resized_image)
-
-                pred = self._sess.run(self._prediction,
-                    feed_dict={self._features: resized_images})
-                preds.extend(pred)
+                pred = self._sess.run(self._prediction, feed_dict={self._features: resized_images})
+                preds.append(pred)
         finally:
             return preds
 
@@ -78,11 +69,23 @@ class TFRecognizer(Recognizer):
 
 
     def _init_graph(self, graph_path):
-        f = tf.gfile.FastGFile(graph_path, 'rb')
-        graph_def = tf.GraphDef()
-        graph_def.ParseFromString(f.read())
-        _ = tf.import_graph_def(graph_def, name='')
-        print("Model restored.")
+        graph = tf.Graph()
+        with graph.as_default():
+            graph_def = tf.GraphDef()
+            with tf.gfile.GFile(graph_path, 'rb') as fid:
+                serialized_graph = fid.read()
+                graph_def.ParseFromString(serialized_graph)
+                tf.import_graph_def(graph_def, name='')
+            if self._legacy:
+                self._features = graph.get_tensor_by_name('x:0')
+                self._prediction = graph.get_tensor_by_name('softmax:0')
+            else:
+                self._features = graph.get_tensor_by_name('features:0')
+                self._prediction = []
+                for name in self._output_names:
+                    self._prediction.append(graph.get_tensor_by_name(name))
+        tf.logging.info("Model restored.")
+        return graph
 
 
     def _pred2word(self, pred):

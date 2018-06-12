@@ -70,18 +70,5 @@ class TFDetector(Detector):
             self._scores = graph.get_tensor_by_name('detection_scores:0')
             self._classes = graph.get_tensor_by_name('detection_classes:0')
             self._num_detections = graph.get_tensor_by_name('num_detections:0')
-
+        tf.logging.info("Model restored.")
         return graph
-    '''
-    def _init_category_index(self, label_map):
-        """Initialize category index.
-
-        Args:
-            label_map: a tensorflow model label_map file
-        """
-        label_map = label_map_util.load_labelmap(label_map)
-        categories = label_map_util.convert_label_map_to_categories(
-                label_map, max_num_classes=1, use_display_name=True)
-
-        self._category_index = label_map_util.create_category_index(categories)
-    '''

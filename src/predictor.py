@@ -27,65 +27,73 @@ import os
 
 from tf_detector import TFDetector
 from tf_recognizer import TFRecognizer
-
+from cmt_dict import *
+image_decoder = {
+    '.jpg': tf.image.decode_jpeg,
+    '.jpeg': tf.image.decode_jpeg,
+    '.png': tf.image.decode_png,
+    '.gif': tf.image.decode_gif
+}
 
 logging.getLogger("tensorflow").setLevel(logging.DEBUG)
 
 
 class Predictor:
 
-    def init(self, vehicle_graph_path, license_graph_path, ocr_graph_path, cmt_graph_path):
-        """Initialization of the class, including open a tf session and
-        load a pre-trained tf graph. See class comments on top of this
-        file for more information;
-
-        Args:
-            :params graph_path: a full path directing to a pre-trained
-            binary .pb file.
-        """
-        '''
-        # Import the graph.
-        with tf.gfile.FastGFile(self.graph_path, 'rb') as f:
-            graph_def = tf.GraphDef()
-            graph_def.ParseFromString(f.read())
-            _ = tf.import_graph_def(graph_def, name = '')
-            tf.logging.info("Model restored.")
-
-        ## 'input' and 'prediction' op should be named when storing
-        ## the graph.
-        self.input = self.sess.graph.get_tensor_by_name('features:0')
-        self.output = self.sess.graph.get_tensor_by_name('prediction:0')
-        '''
-        self.vehicle_model = TFDetector(vehicle_graph_path)
-        self.license_model = TFDetector(license_graph_path)
-        self.ocr_model = TFRecognizer(ocr_graph_path)
-        self.cmt_model = TFRecognizer(cmt_graph_path)
-
-    def predict(self, instances):
-        """ This method predict fed-in instance using pre-trained model.
-        This function should be called after manually `init()` this class.
-    
-        Args:
-            instances: a 2-D list of data input.
-        Returns:
-            A 2-D ndarray of prediction result.
-            
-        """
-        return self.sess.run(self.output, feed_dict = {self.input: instances})
-        
-
-    def predict_image(self, name, bytes, height, width, channel):
+    def __init__(self, vehicle_graph_path, license_graph_path, ocr_graph_path, cmt_graph_path):
+        self._vehicle_model = TFDetector(vehicle_graph_path)
+        self._license_model = TFDetector(license_graph_path)
+        self._ocr_model = TFRecognizer(ocr_graph_path, input_shape = [36,224], output_names=["prediction:0"])
+        self._cmt_model = TFRecognizer(cmt_graph_path, 
+            input_shape = [212,212], 
+            output_names=["prediction_color:0", "prediction_make:0", "prediction_type:0"])
+        self.result = []
+    def predict(self, image):
+        #vihicle predict
+        vehicle_box = self._vehicle_model.detect(image, 0.3)
+        #license predict
+        for i in range(len(vehicle_box)):
+            rst = {}
+            box = vehicle_box[i]
+            rst['vehicle'] = box
+            #cmt predict
+            image_vehicle = image[box[1]:box[3],box[0]:box[2]]
+            cmt = self._cmt_model.recognize(image_vehicle)
+            c = vehicle_color[cmt[0][0]]
+            m = vehicle_make[cmt[1][0]]
+            t = vehicle_type[cmt[2][0]]
+            rst['color'] = c
+            rst['make'] = m
+            rst['type'] = t
+            #license predict
+            license_box = self._license_model.detect(image_vehicle, 0.2)
+            if len(license_box)>0:
+                license_box = license_box[0]
+                rst['license'] = license_box
+                #ocr predict
+                image_license = image_vehicle[license_box[1]:license_box[3],license_box[0]:license_box[2]]
+                ocr = self._ocr_model.recognize(image_license)
+                rst['ocr'] = ocr[0][0]
+            self.result.append(rst)
+        return self.result
+    def predict_bytes(self, name, data_bytes, height, width, channel):
         tf.logging.info('within predicting image')
         tf.logging.info(name)
 
         _, postfix = os.path.splitext(name)
         tf.logging.info(postfix)
-
-        decoded_bytes = base64.b64decode(bytes)
+        #decode image
+        image = decode_image(data_bytes, height, width, channel)
+        #predict
+        return self.predict(image)
+    def predict_image(self, image):
+        return self.predict(image)
+    def decode_image(self, data_bytes, height, width, channel):
+        decoded_bytes = base64.b64decode(data_bytes)
         decoder = image_decoder[postfix]
         image_matrix = decoder(decoded_bytes)
         resized_image = tf.image.resize_images(image_matrix, [height, width])
         resized_image.set_shape((height, width, channel))
-
-        decoded_image = self.sess.run(resized_image)
-        return self.sess.run(self.output, feed_dict = {self.input: [decoded_image]})
+        with tf.Sesson() as sess:
+            image = sess.run(resized_image)
+        return image

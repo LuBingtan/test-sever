@@ -1,2 +1,4 @@
 *.pb
 *.model
+*.pyc
+*.jpg

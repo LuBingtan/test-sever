@@ -12,13 +12,22 @@ import logging
 import tensorflow as tf
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
-#from predictor import Predictor
-
-
-#predictor = Predictor()
+from predictor import Predictor
+vehicle_graph_path = "../models/frozen_inference_graph.pb"
+license_graph_path = "../models/faster_rcnn_plate_graph.pb"
+ocr_graph_path = "../models/ocr_1029_753000s.model"
+cmt_graph_path = "../models/simple_frozen_inference_graph_1_3.pb"
+predictor = Predictor(vehicle_graph_path, license_graph_path, ocr_graph_path, cmt_graph_path)
 logging.getLogger("tensorflow").setLevel(logging.DEBUG)
-
-
+'''test 
+import cv2 as cv
+image = cv.imread("test.jpg")
+rst = predictor.predict_image(image)
+print "--------------------------rst--------------------------"
+print rst
+print "--------------------------rst--------------------------"
+print json.dumps(rst)
+'''
 class DieuHTTPHandler(BaseHTTPRequestHandler):
 
     def _set_headers(self):
@@ -41,24 +50,23 @@ class DieuHTTPHandler(BaseHTTPRequestHandler):
         data_json = json.loads(data_string)
 
         if "data" in data_json:
-            print("data")
-            #result = predictor.predict(data_json['data'])
+            result = predictor.predict_image(data_json['data'])
         else:
             name = data_json['name']
             bytes = data_json['bytes']
             height = data_json['height']
             width = data_json['width']
             channel = data_json['channel']
-            #result = predictor.predict_image(name, bytes, height, width, channel)
+            result = predictor.predict_bytes(name, bytes, height, width, channel)
 
-        result_json = json.dumps(result.tolist())
+        result_json = json.dumps(result)
         self.wfile.write(result_json)
         # except Exception as e:
         #     self.wfile.write(e)
         #     raise e
 
 
-def run(graph_path, server = HTTPServer, handler = DieuHTTPHandler,
+def run(server = HTTPServer, handler = DieuHTTPHandler,
         port = 7777):
     """Start a Dieu web service. Default starting port is 7777.
 
@@ -80,7 +88,10 @@ if __name__ == '__main__':
     from sys import argv
 
     # Use the port if it is specified.
+    '''
     if len(argv) > 2:
         run(argv[1], port = int(argv[2]))
     else:
         run(argv[1])
+    '''
+    run()
