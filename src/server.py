@@ -6,7 +6,8 @@
 A simple http server listening to tf prediction request and
 responding with prediction result.
 """
-
+import numpy as np
+import time
 import json
 import logging
 import tensorflow as tf
@@ -43,14 +44,15 @@ class DieuHTTPHandler(BaseHTTPRequestHandler):
         tf.logging.info('Receive POST request, begin to predict!\n')
 
         data_string = self.rfile.read(int(self.headers['Content-Length']))
-        tf.logging.info(data_string)
+        tf.logging.info("data get")
 
         # try:
         # Load the json data and do prediction here.
         data_json = json.loads(data_string)
 
         if "data" in data_json:
-            result = predictor.predict_image(data_json['data'])
+            print(type(data_json['data']))
+            result = predictor.predict_image(np.array(data_json['data']))
         else:
             name = data_json['name']
             bytes = data_json['bytes']

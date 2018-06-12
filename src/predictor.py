@@ -19,7 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-
+import numpy as np
 import base64
 import commands
 import logging
@@ -27,7 +27,7 @@ import os
 
 from tf_detector import TFDetector
 from tf_recognizer import TFRecognizer
-from cmt_dict import *
+import cmt_dict
 image_decoder = {
     '.jpg': tf.image.decode_jpeg,
     '.jpeg': tf.image.decode_jpeg,
@@ -59,9 +59,9 @@ class Predictor:
             #cmt predict
             image_vehicle = image[box[1]:box[3],box[0]:box[2]]
             cmt = self._cmt_model.recognize(image_vehicle)
-            c = vehicle_color[cmt[0][0]]
-            m = vehicle_make[cmt[1][0]]
-            t = vehicle_type[cmt[2][0]]
+            c = cmt_dict.vehicle_color[cmt[0][0]]
+            m = cmt_dict.vehicle_make[cmt[1][0]]
+            t = cmt_dict.vehicle_type[cmt[2][0]]
             rst['color'] = c
             rst['make'] = m
             rst['type'] = t
@@ -77,23 +77,18 @@ class Predictor:
             self.result.append(rst)
         return self.result
     def predict_bytes(self, name, data_bytes, height, width, channel):
-        tf.logging.info('within predicting image')
-        tf.logging.info(name)
-
-        _, postfix = os.path.splitext(name)
-        tf.logging.info(postfix)
         #decode image
-        image = decode_image(data_bytes, height, width, channel)
+        image = self.decode_image(name, data_bytes, height, width, channel)
         #predict
         return self.predict(image)
     def predict_image(self, image):
         return self.predict(image)
-    def decode_image(self, data_bytes, height, width, channel):
-        decoded_bytes = base64.b64decode(data_bytes)
-        decoder = image_decoder[postfix]
-        image_matrix = decoder(decoded_bytes)
-        resized_image = tf.image.resize_images(image_matrix, [height, width])
-        resized_image.set_shape((height, width, channel))
-        with tf.Sesson() as sess:
-            image = sess.run(resized_image)
+    def decode_image(self, name, data_bytes, height, width, channel):
+        tf.logging.info('within predicting image')
+        tf.logging.info(name)
+        _, postfix = os.path.splitext(name)
+        tf.logging.info(postfix)
+        r = base64.decodestring(data_bytes)
+        image = np.frombuffer(r, dtype=np.uint8)
+        image = image.reshape((height, width, channel)) 
         return image
