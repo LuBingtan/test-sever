@@ -22,5 +22,7 @@ conn.request('POST',requrl,json.dumps(test_data),headerdata)
 response = conn.getresponse()  
   
 res= response.read()  
-  
-print res 
+rst = json.loads(res)
+print len(rst)
+for t in rst:
+    print t

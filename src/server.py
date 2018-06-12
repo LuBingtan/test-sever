@@ -60,6 +60,9 @@ class DieuHTTPHandler(BaseHTTPRequestHandler):
             width = data_json['width']
             channel = data_json['channel']
             result = predictor.predict_bytes(name, bytes, height, width, channel)
+            for t in result:
+                tf.logging.debug(t)
+
 
         result_json = json.dumps(result)
         self.wfile.write(result_json)

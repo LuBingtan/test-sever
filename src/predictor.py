@@ -47,8 +47,8 @@ class Predictor:
         self._cmt_model = TFRecognizer(cmt_graph_path, 
             input_shape = [212,212], 
             output_names=["prediction_color:0", "prediction_make:0", "prediction_type:0"])
-        self.result = []
     def predict(self, image):
+        result=[]
         #vihicle predict
         vehicle_box = self._vehicle_model.detect(image, 0.3)
         #license predict
@@ -74,8 +74,8 @@ class Predictor:
                 image_license = image_vehicle[license_box[1]:license_box[3],license_box[0]:license_box[2]]
                 ocr = self._ocr_model.recognize(image_license)
                 rst['ocr'] = ocr[0][0]
-            self.result.append(rst)
-        return self.result
+            result.append(rst)
+        return result
     def predict_bytes(self, name, data_bytes, height, width, channel):
         #decode image
         image = self.decode_image(name, data_bytes, height, width, channel)
