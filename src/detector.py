@@ -1,6 +1,3 @@
-"""An detector should be able to localize an object,
-either a vehicle or a vehicle license plate.
-"""
 import abc
 
 

@@ -1,6 +1,3 @@
-"""TF detector is in charge of localizing objects in the image(s),
-either a vehicle or a vehicle license plate.
-"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function

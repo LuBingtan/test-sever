@@ -1,6 +1,3 @@
-"""An Optical Characters Recognizer
-should be able to recognize characters on vehicle license plates.
-"""
 import abc
 
 class Recognizer(object):

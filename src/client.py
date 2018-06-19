@@ -15,7 +15,7 @@ test_data = {
 requrl = ""  
 headerdata = {"Content-type": "application/json"}  
   
-conn = httplib.HTTPConnection("172.16.205.224",7777)  
+conn = httplib.HTTPConnection("172.16.30.2",7777)  
   
 conn.request('POST',requrl,json.dumps(test_data),headerdata)   
   
@@ -26,3 +26,5 @@ rst = json.loads(res)
 print len(rst)
 for t in rst:
     print t
+    if 'ocr' in t:
+        print t['ocr']

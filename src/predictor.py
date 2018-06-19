@@ -1,19 +1,3 @@
-"""TF predictor
-
-A predictor class to predict over a pre-trained tf graph. This class
-bootstraps a TF session and load a pre-trained graph in init().
-Data then can be fed in and do prediction using predict().
-
-NOTE: pre-trained tf graph should be a binary protocal buffer file
-having fixed value on weights/biases or other parameters in the graph.
-See 'https://www.tensorflow.org/api_docs/python/tf/train/write_graph'
-to write a binary graph, 'https://github.com/tensorflow/tensorflow/
-blob/a0d784bdd31b27e013a7eac58a86ba62e86db299/tensorflow/python/tools
-/freeze_graph.py' to freeze a graph with constant values.
-
-NOTE: init() is not __init()__, which should be loaded manaully.
-"""
-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
